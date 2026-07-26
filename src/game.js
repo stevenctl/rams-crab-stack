@@ -71,12 +71,14 @@ let levelTime = 0;
 let nextDrop = 0;
 let chewing = [];
 let escaped = false;
+let pileSlots = []; // shuffled queue of drop spots left in this pass; see nextPileX()
 
 export function start(world) {
   levelTime = 0;
   nextDrop = 0.5; // the first drumstick lands almost straight away
   chewing = [];
   escaped = false;
+  pileSlots = [];
 
   glassHeight = FIRST_HEIGHT + (level - 1) * TALLER_EACH_LEVEL;
   world.tank(TANK_WIDTH, glassHeight);
@@ -162,7 +164,7 @@ function dropDrumsticks(world) {
   nextDrop = levelTime + DROP_EVERY;
 
   world.spawn('Drumstick', {
-    x: PILE_AT + (Math.random() * 2 - 1) * PILE_SPREAD,
+    x: nextPileX(),
     y: glassHeight + 6, // in over the top of the glass
     z: -1 + Math.random(), // scattered a little in depth, purely to look at
     size: 5.2,
@@ -172,6 +174,30 @@ function dropDrumsticks(world) {
     solid: true, // so they pile up on each other, and can be stood on
     moves: true, // so they fall
   });
+}
+
+// A plain random x can drop two drumsticks in nearly the same spot by chance and
+// leave the rest of the pile bare. Slicing the band into slots and shuffling the
+// order they're visited spreads every drop out over a full pass, while the jitter
+// inside each slot keeps it from looking like a grid.
+const PILE_SLOT_COUNT = 5;
+
+function nextPileX() {
+  if (pileSlots.length === 0) pileSlots = shuffledSlots(PILE_SLOT_COUNT);
+  const slot = pileSlots.pop();
+
+  const slotWidth = (PILE_SPREAD * 2) / PILE_SLOT_COUNT;
+  const slotStart = PILE_AT - PILE_SPREAD + slot * slotWidth;
+  return slotStart + Math.random() * slotWidth;
+}
+
+function shuffledSlots(count) {
+  const slots = Array.from({ length: count }, (_, i) => i);
+  for (let i = slots.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [slots[i], slots[j]] = [slots[j], slots[i]];
+  }
+  return slots;
 }
 
 // Walk into a drumstick and the crab eats it. Except for the one it is standing
