@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Crab Game</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        overflow: hidden;
+        background: #0d1b2a;
+      }
+
+      /* The canvas is the whole game screen. `touch-action: none` stops a phone
+         treating a swipe on the controls as a scroll or a pinch-zoom. */
+      #game {
+        display: block;
+        width: 100%;
+        height: 100%;
+        touch-action: none;
+      }
+
+      body {
+        overscroll-behavior: none;
+        -webkit-user-select: none;
+        user-select: none;
+      }
+
+      /* Text drawn on top of the game. */
+      #hud {
+        position: fixed;
+        top: 16px;
+        left: 16px;
+        font: 16px/1.5 system-ui, sans-serif;
+        color: white;
+        text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+        pointer-events: none;
+        white-space: pre-line;
+      }
+
+      /* The title screen, shown over everything until a key is pressed. */
+      #splash {
+        position: fixed;
+        inset: 0;
+        z-index: 10;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 28px;
+        padding: 24px;
+        box-sizing: border-box;
+        background: #0d1b2a;
+        cursor: pointer;
+        transition: opacity 0.45s ease;
+      }
+
+      #splash.gone {
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      #splash img {
+        max-width: min(90vw, 900px);
+        max-height: 70vh;
+        object-fit: contain;
+      }
+
+      #splash p {
+        margin: 0;
+        font: 600 20px/1 system-ui, sans-serif;
+        letter-spacing: 0.06em;
+        color: white;
+        animation: blink 1.4s ease-in-out infinite;
+      }
+
+      @keyframes blink {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.3;
+        }
+      }
+
+      /* Someone playing with the motion-reduction setting turned on should not
+         be made to watch it flash. */
+      @media (prefers-reduced-motion: reduce) {
+        #splash p {
+          animation: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="game"></canvas>
+    <div id="hud"></div>
+    <div id="splash"></div>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

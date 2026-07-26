@@ -1,0 +1,65 @@
+# Builds the game and publishes it to GitHub Pages.
+#
+# This runs by itself every time you push to your main branch. You can also run
+# it by hand from the Actions tab on GitHub, using the "Run workflow" button.
+#
+# Before it will work, GitHub needs to be told to use it: on your repository go
+# to Settings, then Pages, and set Source to "GitHub Actions".
+
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+# What this workflow is allowed to do: read the code, and publish a site.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# If you push twice quickly, let the newer build finish and win, but don't
+# cancel a deploy that is already partway through.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get the code
+        uses: actions/checkout@v7
+
+      - name: Install bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install the packages
+        run: bun install --frozen-lockfile
+
+      - name: Set up Pages
+        uses: actions/configure-pages@v6
+
+      # GITHUB_REPOSITORY is set by GitHub and looks like "yourname/crabs".
+      # vite.config.js reads it to work out the folder the site is served from.
+      - name: Build
+        run: bun run build
+
+      - name: Hand the finished site over
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Publish it
+        id: deployment
+        uses: actions/deploy-pages@v5
