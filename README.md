@@ -290,6 +290,25 @@ Two things it deliberately stays out of the way of: **ctrl and cmd shortcuts are
 left to the browser**, so ctrl+R still reloads the page, and only the arrows and
 space stop the page scrolling. Letters never swallow anything.
 
+### Touch
+
+Taps feed the same `keys` and `pressed`, so the game doesn't need to know whether
+someone is on a keyboard or a phone. The screen is carved into three bands, set
+at the top of `src/input.js`:
+
+```js
+const TOUCH_ZONES = [
+  { upTo: 0.25, key: 'left' },   // left quarter
+  { upTo: 0.5, key: 'right' },   // second quarter
+  { upTo: 1, key: 'space' },     // the whole right half is jump
+];
+```
+
+Two fingers work at once, and sliding a thumb from one band into another turns
+the crab round. Mice are ignored on purpose, so a stray click on a desktop
+doesn't make the crab leap — to try the touch controls on a computer, turn on
+device emulation in the browser's developer tools.
+
 ## Making the collision box smaller than the model
 
 By default a thing's collision box is measured off its model. `collider` scales
@@ -432,9 +451,18 @@ git branch -M main
 git push -u origin main
 ```
 
-**3. Turn Pages on.** On your repository page, go to **Settings**, then
-**Pages** in the sidebar, and under **Source** choose **GitHub Actions**. This
-is the step that is easy to miss, and nothing appears until it's done.
+**3. Turn Pages on.** The workflow tries to do this for itself on its first run.
+If it can't, it stops with:
+
+```
+Error: Get Pages site failed. Please verify that the repository has Pages
+enabled and configured to build using GitHub Actions
+```
+
+which means you have to switch it on by hand: on your repository page go to
+**Settings**, then **Pages** in the sidebar, and under **Source** choose
+**GitHub Actions**. Then go to the **Actions** tab, open the failed run, and
+press **Re-run all jobs**.
 
 That's it. Go to the **Actions** tab and you'll see the build running. It takes
 a minute or two. When it finishes, the address is printed on the workflow run,

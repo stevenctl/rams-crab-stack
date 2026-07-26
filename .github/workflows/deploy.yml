@@ -3,8 +3,9 @@
 # This runs by itself every time you push to your main branch. You can also run
 # it by hand from the Actions tab on GitHub, using the "Run workflow" button.
 #
-# Before it will work, GitHub needs to be told to use it: on your repository go
-# to Settings, then Pages, and set Source to "GitHub Actions".
+# The first run tries to switch Pages on by itself. If it cannot, go to your
+# repository on GitHub, then Settings, then Pages, and set Source to
+# "GitHub Actions" -- then run this again from the Actions tab.
 
 name: Deploy to GitHub Pages
 
@@ -40,8 +41,15 @@ jobs:
       - name: Install the packages
         run: bun install --frozen-lockfile
 
+      # `enablement: true` asks GitHub to switch Pages on for this repository if
+      # it is not on already, instead of failing with "Get Pages site failed".
+      # It cannot always do it -- an organisation policy, or a private repository
+      # on a free plan, will still refuse -- in which case turn it on by hand:
+      # Settings, then Pages, then set Source to "GitHub Actions".
       - name: Set up Pages
         uses: actions/configure-pages@v6
+        with:
+          enablement: true
 
       # GITHUB_REPOSITORY is set by GitHub and looks like "yourname/crabs".
       # vite.config.js reads it to work out the folder the site is served from.
