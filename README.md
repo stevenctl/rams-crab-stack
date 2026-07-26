@@ -1,7 +1,21 @@
 # Crab Game
 
-A tiny side-on platformer: walk the crab around, jump between platforms, with its
-animations playing. The world is 3D, but the game code is plain 2D.
+A crab is stuck in a tank. Drumsticks keep raining in and piling up in one
+corner. Climb the pile, get over the glass, and drop off the outside — you have
+escaped, and the next tank is taller.
+
+The world is 3D, but the game code is plain 2D.
+
+## Playing it
+
+- **Arrows** or **A/D** to walk, **space** to jump, **R** to start over.
+- On a phone: the **left quarter** of the screen walks left, the **next quarter**
+  walks right, and the **whole right half** is a jump button. Two fingers work at
+  once, so you can walk and jump together.
+- Walk into a drumstick and the crab eats it, leaving a bone you can shove
+  around. It won't eat the one it's *standing on* — that one is a step, not a
+  snack, or you'd eat your own ladder on the way up. Press **E** to eat that one
+  anyway.
 
 ## Running it
 

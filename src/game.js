@@ -174,15 +174,17 @@ function dropDrumsticks(world) {
   });
 }
 
-// Take a bite, but only when asked. If this happened on contact instead, the
-// crab would eat the pile out from underneath itself on the way up.
+// Walk into a drumstick and the crab eats it. Except for the one it is standing
+// on -- that one is a step, not a snack, or the crab would eat the pile out from
+// underneath itself on the way up. Press E to eat that one anyway.
 function startEating(world, crab) {
-  if (!world.pressed.e) return;
-
   crab.colliding('snack', (snack) => {
     if (snack.beingEaten) return; // already working on this one
-    snack.beingEaten = true;
 
+    const standingOnIt = crab.y >= snack.y + snack.height - 0.05;
+    if (standingOnIt && !world.pressed.e) return;
+
+    snack.beingEaten = true;
     world.playAudio('chomp');
     chewing.push({ snack, doneAt: levelTime + CHEW_TIME });
   });
@@ -217,7 +219,7 @@ function finishEating(world) {
 function showHud(world) {
   world.hud(
     `Tank ${level}   glass is ${glassHeight} high   escaped ${escapes}   eaten ${eaten}\n`
-    + 'Climb the pile of drumsticks and get over the glass!\n'
-    + 'Arrows to walk, space to jump, E to eat, R to start over',
+    + 'Climb the pile of drumsticks, get over the glass and jump out!\n'
+    + 'Arrows to walk, space to jump, R to start over',
   );
 }
