@@ -53,10 +53,9 @@ const TANK_WIDTH = 24; // the tank is always this wide
 const FIRST_HEIGHT = 8; // how tall the glass is on level 1
 const TALLER_EACH_LEVEL = 3; // and how much taller it gets after each escape
 
-// Where the drumsticks come down. They land in a narrow band rather than all
-// over, so they pile into something climbable instead of scattering flat.
-const PILE_AT = TANK_WIDTH / 2 - 4;
-const PILE_SPREAD = 2;
+// Where the drumsticks come down. They drop anywhere across the tank, minus a
+// margin at each end so they don't fall straight through the glass.
+const DROP_MARGIN = 3;
 
 // Things worth remembering between levels. These survive world.reset(), which is
 // how the game gets harder: start() reads `level` and builds a taller tank.
@@ -71,20 +70,20 @@ let levelTime = 0;
 let nextDrop = 0;
 let chewing = [];
 let escaped = false;
-let pileSlots = []; // shuffled queue of drop spots left in this pass; see nextPileX()
+let dropSlots = []; // shuffled queue of drop spots left in this pass; see nextDropX()
 
 export function start(world) {
   levelTime = 0;
   nextDrop = 0.5; // the first drumstick lands almost straight away
   chewing = [];
   escaped = false;
-  pileSlots = [];
+  dropSlots = [];
 
   glassHeight = FIRST_HEIGHT + (level - 1) * TALLER_EACH_LEVEL;
   world.tank(TANK_WIDTH, glassHeight);
 
   // A rock to give the first climb a leg-up.
-  world.rock(PILE_AT - 5, 0, 3, 2);
+  world.rock(-TANK_WIDTH / 2 + 4, 0, 3, 2);
 
   showHud(world);
 }
@@ -164,7 +163,7 @@ function dropDrumsticks(world) {
   nextDrop = levelTime + DROP_EVERY;
 
   world.spawn('Drumstick', {
-    x: nextPileX(),
+    x: nextDropX(),
     y: glassHeight + 6, // in over the top of the glass
     z: -1 + Math.random(), // scattered a little in depth, purely to look at
     size: 5.2,
@@ -177,17 +176,18 @@ function dropDrumsticks(world) {
 }
 
 // A plain random x can drop two drumsticks in nearly the same spot by chance and
-// leave the rest of the pile bare. Slicing the band into slots and shuffling the
+// leave the rest of the tank bare. Slicing the width into slots and shuffling the
 // order they're visited spreads every drop out over a full pass, while the jitter
 // inside each slot keeps it from looking like a grid.
-const PILE_SLOT_COUNT = 5;
+const DROP_SLOT_COUNT = 8;
 
-function nextPileX() {
-  if (pileSlots.length === 0) pileSlots = shuffledSlots(PILE_SLOT_COUNT);
-  const slot = pileSlots.pop();
+function nextDropX() {
+  if (dropSlots.length === 0) dropSlots = shuffledSlots(DROP_SLOT_COUNT);
+  const slot = dropSlots.pop();
 
-  const slotWidth = (PILE_SPREAD * 2) / PILE_SLOT_COUNT;
-  const slotStart = PILE_AT - PILE_SPREAD + slot * slotWidth;
+  const usableWidth = TANK_WIDTH - DROP_MARGIN * 2;
+  const slotWidth = usableWidth / DROP_SLOT_COUNT;
+  const slotStart = -usableWidth / 2 + slot * slotWidth;
   return slotStart + Math.random() * slotWidth;
 }
 
