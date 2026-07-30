@@ -43,7 +43,8 @@
 const SPEED = 7; // how far the crab walks in one second
 const JUMP = 13; // how hard it pushes off the ground
 const CHEW_TIME = 0.75; // how many seconds a drumstick takes to eat
-const DROP_EVERY = 2.0; // a new drumstick falls in this often, in seconds
+const DROP_EVERY = 3.0; // a new drumstick falls in this often, in seconds
+const SPEEDUP = .8; // 20 % faster each time
 
 // Fall below this and you are out of the tank and away. The sand's top is y = 0,
 // so nothing that is still inside can ever get down here.
@@ -51,12 +52,11 @@ const ESCAPED_BELOW = -5;
 
 const TANK_WIDTH = 24; // the tank is always this wide
 const FIRST_HEIGHT = 8; // how tall the glass is on level 1
-const TALLER_EACH_LEVEL = 3; // and how much taller it gets after each escape
+const TALLER_EACH_LEVEL = 8; // and how much taller it gets after each escape
 
 // Where the drumsticks come down. They land in a narrow band rather than all
 // over, so they pile into something climbable instead of scattering flat.
-const PILE_AT = TANK_WIDTH / 2 - 4;
-const PILE_SPREAD = 2;
+const PILE_SPREAD = TANK_WIDTH * 3 / 4;
 
 // Things worth remembering between levels. These survive world.reset(), which is
 // how the game gets harder: start() reads `level` and builds a taller tank.
@@ -72,9 +72,11 @@ let nextDrop = 0;
 let chewing = [];
 let escaped = false;
 let pileSlots = []; // shuffled queue of drop spots left in this pass; see nextPileX()
+let dropEvery = DROP_EVERY;
 
 export function start(world) {
   levelTime = 0;
+  dropEvery = DROP_EVERY * (Math.pow(SPEEDUP, level - 1));
   nextDrop = 0.5; // the first drumstick lands almost straight away
   chewing = [];
   escaped = false;
@@ -84,7 +86,7 @@ export function start(world) {
   world.tank(TANK_WIDTH, glassHeight);
 
   // A rock to give the first climb a leg-up.
-  world.rock(PILE_AT - 5, 0, 3, 2);
+  world.rock( 5, 0, 3, 2);
 
   showHud(world);
 }
@@ -161,7 +163,7 @@ function checkEscape(world, crab) {
 function dropDrumsticks(world) {
   if (escaped) return;
   if (levelTime < nextDrop) return;
-  nextDrop = levelTime + DROP_EVERY;
+  nextDrop = levelTime + dropEvery;
 
   world.spawn('Drumstick', {
     x: nextPileX(),
@@ -176,19 +178,9 @@ function dropDrumsticks(world) {
   });
 }
 
-// A plain random x can drop two drumsticks in nearly the same spot by chance and
-// leave the rest of the pile bare. Slicing the band into slots and shuffling the
-// order they're visited spreads every drop out over a full pass, while the jitter
-// inside each slot keeps it from looking like a grid.
-const PILE_SLOT_COUNT = 5;
-
 function nextPileX() {
-  if (pileSlots.length === 0) pileSlots = shuffledSlots(PILE_SLOT_COUNT);
-  const slot = pileSlots.pop();
 
-  const slotWidth = (PILE_SPREAD * 2) / PILE_SLOT_COUNT;
-  const slotStart = PILE_AT - PILE_SPREAD + slot * slotWidth;
-  return slotStart + Math.random() * slotWidth;
+  return TANK_WIDTH * Math.random() - TANK_WIDTH / 2;
 }
 
 function shuffledSlots(count) {

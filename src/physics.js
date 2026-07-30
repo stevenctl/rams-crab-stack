@@ -21,6 +21,12 @@
 // argue with each other forever.
 const SKIN = 0.001;
 
+// How deep something may already be sunk into a face before we stop believing
+// it crossed that face this frame. Head bumps and rounding leave bodies up to a
+// SKIN inside things on purpose, and those slivers must still be read as "you
+// are on this side" -- not as "you are lost somewhere in the middle".
+const SLOP = SKIN * 4;
+
 export function createBody(x, y, width, height) {
   return {
     x,
@@ -86,29 +92,40 @@ export function step(body, solids, gravity, dt) {
   body.vy += gravity * dt;
 
   // --- Sideways ---
-  body.x += body.vx * dt;
 
-  // Which way we were going as this frame began. Worked out once, up here,
-  // because the moment we bump into the first thing we set our speed to zero --
-  // and then every other thing we are touching would be judged as if we had
-  // been standing still.
-  const wasGoingX = body.vx;
+  // Where our sides were as this frame began. Which way we are moving cannot
+  // tell us which side we came in from -- see the up-and-down pass below for
+  // why -- and "whichever side we are nearer to" is worse: a hair's overlap
+  // with the sand, which is as wide as the whole tank, would fling us to
+  // whichever end of the tank was closer. Where we started from is the truth.
+  const leftWas = body.x - body.width / 2;
+  const rightWas = body.x + body.width / 2;
+  body.x += body.vx * dt;
 
   for (const solid of solids) {
     if (solid === body) continue; // a solid thing that moves must not hit itself
     if (!overlaps(body, solid)) continue;
 
-    // Which side did we go in from? Usually the way we were moving tells us. But
-    // the game is allowed to move things by setting body.x itself, and then there
-    // is no speed to read -- so fall back to whichever side we are nearer to.
-    const cameFromTheLeft = wasGoingX > 0 || (wasGoingX === 0 && body.x < solid.x);
+    const solidLeft = solid.x - solid.width / 2;
+    const solidRight = solid.x + solid.width / 2;
+
+    // Which face did we actually cross this frame?
+    const cameFromTheLeft = rightWas <= solidLeft + SLOP;
+    const cameFromTheRight = leftWas >= solidRight - SLOP;
+
+    // Neither means we began the frame already level with it -- it fell into
+    // us, or we are wading out of something we were left inside. There is no
+    // face to put us back behind, and pushing us to either far side is the
+    // teleport we are trying not to do. Walk on through; the overlap mends
+    // itself as soon as we are clear.
+    if (!cameFromTheLeft && !cameFromTheRight) continue;
 
     // How far we have sunk into it -- which is how far it would have to shift to
     // be out of our way again, plus a hair so they end up properly apart rather
     // than exactly touching.
     const sunkIn = cameFromTheLeft
-      ? body.x + body.width / 2 - (solid.x - solid.width / 2) + SKIN
-      : body.x - body.width / 2 - (solid.x + solid.width / 2) - SKIN;
+      ? body.x + body.width / 2 - solidLeft + SKIN
+      : body.x - body.width / 2 - solidRight - SKIN;
 
     // If it is something that can be shoved along, try shoving it rather than
     // stopping dead. If it goes, we carry on walking as though it were not there.
@@ -119,39 +136,47 @@ export function step(body, solids, gravity, dt) {
     // does not, the up-and-down pass below sees a sliver of overlap and thinks
     // we are standing on the thing we just walked into.
     if (cameFromTheLeft) {
-      body.x = solid.x - solid.width / 2 - body.width / 2 - SKIN; // hit its left side
+      body.x = solidLeft - body.width / 2 - SKIN; // hit its left side
     } else {
-      body.x = solid.x + solid.width / 2 + body.width / 2 + SKIN; // hit its right side
+      body.x = solidRight + body.width / 2 + SKIN; // hit its right side
     }
     body.vx = 0;
   }
 
   // --- Up and down ---
   body.onGround = false;
-  body.y += body.vy * dt;
 
-  // Sampled once, for the same reason: landing on the sand sets our falling
-  // speed to zero, and anything else we happen to be touching -- a bone resting
-  // beside us, say -- must not be judged by that zero.
-  const wasGoingY = body.vy;
+  // Where our feet and head were as this frame began. Which way we are moving
+  // is not enough to say which side of a thing we hit: standing still we are
+  // always falling a whisker (that is what keeps onGround true), so the moment
+  // something dropped into us from above, "falling" would read as "landed on
+  // it" and we would snap up to its top -- and then to the top of the next
+  // thing we overlap at that height, riding the whole pile up in one frame.
+  // Where we started from says which face we actually crossed.
+  const feetWere = body.y;
+  const headWas = body.y + body.height;
+  body.y += body.vy * dt;
 
   for (const solid of solids) {
     if (solid === body) continue;
     if (!overlaps(body, solid)) continue;
 
-    // The same question going up and down, answered the same way.
-    const cameFromAbove = wasGoingY < 0 || (wasGoingY === 0 && body.y > solid.y);
-
-    if (cameFromAbove) {
+    if (feetWere >= solid.y + solid.height - SLOP) {
+      // Our feet began the frame at or above its top, so we landed on it.
       // Landing sits exactly on the surface, on purpose. Every frame gravity
       // sinks us a whisker into the floor and this lifts us back out, and that
       // is what keeps onGround true while we stand still.
       body.y = solid.y + solid.height;
       body.onGround = true;
-    } else {
+      body.vy = 0;
+    } else if (headWas <= solid.y + SLOP) {
       body.y = solid.y - body.height - SKIN; // banged our head on the underside
+      body.vy = 0;
     }
-    body.vy = 0;
+    // Neither means we were already level with it when the frame began: it is
+    // not a floor or a ceiling, it is something that fell into us or that we
+    // slid into. Same answer as the sideways pass gives: no guessing, walk on
+    // through, and the overlap mends itself as soon as we are clear.
   }
 
   // Look the way we are moving.
